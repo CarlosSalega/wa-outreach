@@ -1,0 +1,13 @@
+.env
+node_modules/
+.next
+wa-session/
+wa-qr.png
+.wa-status.json
+*.db
+/test-*.ts
+/test-send.ts
+/prisma/migrations/
+.wwebjs_cache/
+clients.csv
+
