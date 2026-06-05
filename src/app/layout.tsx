@@ -40,9 +40,11 @@ export default function RootLayout({
           <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
             <div className="mx-auto max-w-5xl px-4 h-14 flex items-center justify-between">
               <div className="flex items-center gap-6">
-                <span className="font-semibold text-sm text-whatsapp flex fle-row gap-2">
+                <span className="font-semibold text-sm text-whatsapp flex gap-1">
                   <WhatsappIcon />
-                  WA Outreach
+                  <span>WA</span>
+                  <hr />
+                  Outreach
                 </span>
                 <MainNav />
               </div>
