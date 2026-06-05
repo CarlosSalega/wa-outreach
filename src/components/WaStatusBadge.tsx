@@ -1,31 +1,38 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 
-type ConnectionStatus = 'disconnected' | 'connecting' | 'qr_ready' | 'connected';
+type ConnectionStatus =
+  | "disconnected"
+  | "connecting"
+  | "qr_ready"
+  | "connected";
 
-const statusConfig: Record<ConnectionStatus, {
-  label: string;
-  variant: 'default' | 'secondary' | 'destructive' | 'outline';
-}> = {
-  disconnected: { label: 'Desconectado',  variant: 'destructive' },
-  connecting:   { label: 'Conectando...', variant: 'secondary'   },
-  qr_ready:     { label: 'Esperando QR',  variant: 'outline'     },
-  connected:    { label: 'Conectado',     variant: 'default'     },
+const statusConfig: Record<
+  ConnectionStatus,
+  {
+    label: string;
+    variant: "default" | "secondary" | "destructive" | "outline";
+  }
+> = {
+  disconnected: { label: "Desconectado", variant: "destructive" },
+  connecting: { label: "Conectando...", variant: "secondary" },
+  qr_ready: { label: "Esperando QR", variant: "outline" },
+  connected: { label: "Conectado", variant: "default" },
 };
 
 export function WaStatusBadge() {
-  const [status, setStatus] = useState<ConnectionStatus>('connecting');
+  const [status, setStatus] = useState<ConnectionStatus>("connecting");
 
   useEffect(() => {
     async function checkStatus() {
       try {
-        const res = await fetch('/api/wa-status');
+        const res = await fetch("/api/wa-status");
         const data = await res.json();
         setStatus(data.status);
       } catch {
-        setStatus('disconnected');
+        setStatus("disconnected");
       }
     }
 
@@ -39,11 +46,15 @@ export function WaStatusBadge() {
 
   return (
     <Badge
-      variant={status === 'connected' ? 'default' : config.variant}
-      className={status === 'connected' ? 'bg-whatsapp text-white hover:bg-whatsapp' : undefined}
+      variant={status === "connected" ? "default" : config.variant}
+      className={
+        status === "connected"
+          ? "bg-whatsapp text-white hover:bg-whatsapp text-sm"
+          : ""
+      }
     >
-      <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-current" />
-      WhatsApp {config.label}
+      <span className="size-1.5 rounded-full bg-current" />
+      {config.label}
     </Badge>
   );
 }
