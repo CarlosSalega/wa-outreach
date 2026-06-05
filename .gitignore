@@ -1,5 +1,6 @@
 .env
 node_modules/
+.atl
 .next
 wa-session/
 wa-qr.png
