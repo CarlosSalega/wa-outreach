@@ -61,16 +61,16 @@ export async function processNextContact(): Promise<void> {
       },
     });
 
-    await prisma.messageLog.create({
-      data: {
-        messageQueueId: job.id,
-        status: 'failed',
-        sentAt: new Date(),
-        errorCode: result.error,
-      },
-    });
-
     if (giveUp) {
+      await prisma.messageLog.create({
+        data: {
+          messageQueueId: job.id,
+          status: 'failed',
+          sentAt: new Date(),
+          errorCode: result.error,
+        },
+      });
+
       await checkAndPauseCampaign(job.campaignId);
     }
   }
