@@ -4,7 +4,7 @@ import { hasReachedDailyLimit } from './warmup';
 import { processNextContact } from './processContact';
 import { prisma } from '../prisma';
 
-function isWithinSendWindow(
+export function isWithinSendWindow(
   startH: number, startMin: number,
   endH: number, endMin: number
 ): boolean {
