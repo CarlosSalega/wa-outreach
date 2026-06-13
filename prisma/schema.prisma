@@ -61,8 +61,8 @@ model Campaign {
   pauseReason        String?
   templateId         String
   template           Template         @relation(fields: [templateId], references: [id])
-  whatsappAccountId  String
-  whatsappAccount    WhatsAppAccount  @relation(fields: [whatsappAccountId], references: [id])
+  whatsappAccountId  String?
+  whatsappAccount    WhatsAppAccount?  @relation(fields: [whatsappAccountId], references: [id])
   contactList        ContactList?
   order              Int              @default(0)
   delayMinSec        Int              @default(30)

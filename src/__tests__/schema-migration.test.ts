@@ -83,12 +83,12 @@ describe('T01 — Schema: WhatsAppAccount and ContactList models', () => {
   });
 
   // ── Campaign model additions ───────────────────────
-  it('Campaign has whatsappAccountId FK to WhatsAppAccount', () => {
+  it('Campaign has optional whatsappAccountId FK to WhatsAppAccount', () => {
     expect(schema).toMatch(
-      /model Campaign[\s\S]*?whatsappAccountId\s+String/
+      /model Campaign[\s\S]*?whatsappAccountId\s+String\?/
     );
     expect(schema).toMatch(
-      /model Campaign[\s\S]*?whatsappAccount\s+WhatsAppAccount\s+@relation/
+      /model Campaign[\s\S]*?whatsappAccount\s+WhatsAppAccount\?\s+@relation/
     );
   });
 
