@@ -153,3 +153,9 @@ export class ClientManager {
     this.sessions.delete(id);
   }
 }
+
+/**
+ * Singleton instance used by the worker, API routes, and the scheduler.
+ * Shares one in-memory map of sessions across the process.
+ */
+export const clientManager = new ClientManager();
