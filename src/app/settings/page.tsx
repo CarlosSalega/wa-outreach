@@ -261,7 +261,7 @@ export default function SettingsPage() {
 
             <div className="space-y-1.5">
               <Label>Ventana de envío</Label>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label htmlFor="acc-win-start-h" className="text-xs">Hora inicio</Label>
                   <div className="flex items-center gap-2">
