@@ -7,15 +7,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model WhatsAppAccount {
+  id                 String   @id @default(cuid())
+  name               String
+  waAccountStartDate DateTime
+  dailyLimit         Int      @default(50)
+  sendWindowStart    Int      @default(9)
+  sendWindowStartMin Int      @default(0)
+  sendWindowEnd      Int      @default(19)
+  sendWindowEndMin   Int      @default(0)
+  status             String   @default("CONFIGURED") // CONFIGURED | CONNECTED | DISCONNECTED
+  campaigns          Campaign[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model ContactList {
+  id         String     @id @default(cuid())
+  name       String
+  campaignId String     @unique
+  campaign   Campaign   @relation(fields: [campaignId], references: [id])
+  contacts   Contact[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
 model Contact {
-  id         String        @id @default(cuid())
-  phone      String        @unique
-  agencyName String
-  status     String        @default("pending") // pending | active | done | opted_out
-  campaignId String?
-  campaign   Campaign?     @relation(fields: [campaignId], references: [id])
-  queue      MessageQueue[]
-  createdAt  DateTime      @default(now())
+  id            String        @id @default(cuid())
+  phone         String        @unique
+  agencyName    String
+  status        String        @default("pending") // pending | active | done | opted_out
+  campaignId    String?
+  campaign      Campaign?     @relation(fields: [campaignId], references: [id])
+  contactListId String?
+  contactList   ContactList?  @relation(fields: [contactListId], references: [id])
+  queue         MessageQueue[]
+  createdAt     DateTime      @default(now())
 }
 
 model Template {
@@ -28,18 +55,24 @@ model Template {
 }
 
 model Campaign {
-  id           String   @id @default(cuid())
-  name         String
-  status       String   @default("ACTIVE")
-  pauseReason  String?
-  templateId   String
-  template     Template @relation(fields: [templateId], references: [id])
-  delayMinSec  Int      @default(30)
-  delayMaxSec  Int      @default(45)
-  contacts     Contact[]
-  queue        MessageQueue[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                 String           @id @default(cuid())
+  name               String
+  status             String           @default("ACTIVE")
+  pauseReason        String?
+  templateId         String
+  template           Template         @relation(fields: [templateId], references: [id])
+  whatsappAccountId  String?
+  whatsappAccount    WhatsAppAccount?  @relation(fields: [whatsappAccountId], references: [id])
+  contactList        ContactList?
+  order              Int              @default(0)
+  delayMinSec        Int              @default(30)
+  delayMaxSec        Int              @default(45)
+  contacts           Contact[]
+  queue              MessageQueue[]
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([status, order])
 }
 
 model MessageQueue {
@@ -60,6 +93,7 @@ model MessageQueue {
   updatedAt    DateTime @updatedAt
 
   @@index([status, scheduledAt])
+  @@index([status, campaignId])
 }
 
 model MessageLog {

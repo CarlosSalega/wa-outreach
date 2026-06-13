@@ -5,7 +5,12 @@ const mockFindFirst = vi.fn();
 const mockUpdate = vi.fn();
 const mockCreate = vi.fn();
 const mockCount = vi.fn();
+const mockUpdateMany = vi.fn();
+const mockCampaignUpdate = vi.fn();
 const mockSendMessageSequence = vi.fn();
+
+// Mock client object for multi-account support
+const mockClient = { sendMessage: vi.fn() };
 
 vi.mock('@/lib/prisma', () => ({
   prisma: {
@@ -13,9 +18,10 @@ vi.mock('@/lib/prisma', () => ({
       findFirst: mockFindFirst,
       update: mockUpdate,
       count: mockCount,
+      updateMany: mockUpdateMany,
     },
     messageLog: { create: mockCreate },
-    campaign: { update: vi.fn() },
+    campaign: { update: mockCampaignUpdate },
   },
 }));
 
@@ -54,6 +60,8 @@ function makeJob(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Default: PENDING > 0 so checkCompletion exits without modifying campaign
+  mockCount.mockResolvedValue(1);
 });
 
 // ── Tests ──────────────────────────────────────────
@@ -62,7 +70,7 @@ describe('processNextContact', () => {
     mockFindFirst.mockResolvedValue(null);
 
     const { processNextContact } = await import('../processContact');
-    await processNextContact();
+    await processNextContact(mockClient);
 
     expect(mockUpdate).not.toHaveBeenCalled();
     expect(mockCreate).not.toHaveBeenCalled();
@@ -78,7 +86,7 @@ describe('processNextContact', () => {
       });
 
       const { processNextContact } = await import('../processContact');
-      await processNextContact();
+      await processNextContact(mockClient);
 
       // 1. Update a PROCESSING
       expect(mockUpdate).toHaveBeenNthCalledWith(1, {
@@ -117,7 +125,7 @@ describe('processNextContact', () => {
       });
 
       const { processNextContact } = await import('../processContact');
-      await processNextContact();
+      await processNextContact(mockClient);
 
       // Update a PENDING + incrementa attempts + reschedule
       expect(mockUpdate).toHaveBeenNthCalledWith(2, {
@@ -148,7 +156,7 @@ describe('processNextContact', () => {
       mockCount.mockResolvedValue(2);
 
       const { processNextContact } = await import('../processContact');
-      await processNextContact();
+      await processNextContact(mockClient);
 
       // Update a FAILED
       expect(mockUpdate).toHaveBeenNthCalledWith(2, {
@@ -186,7 +194,7 @@ describe('processNextContact', () => {
       mockCount.mockResolvedValue(5);
 
       const { processNextContact } = await import('../processContact');
-      await processNextContact();
+      await processNextContact(mockClient);
 
       // Debe haber actualizado la campaña a PAUSED
       const { prisma } = await import('@/lib/prisma');
