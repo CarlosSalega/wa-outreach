@@ -158,7 +158,7 @@ export default function ContactsPage() {
         <div className="space-y-1.5">
           <Label>Lista de contactos (opcional)</Label>
           <Select value={importListId} onValueChange={(v) => setImportListId(v ?? '')}>
-            <SelectTrigger className="w-full sm:w-64">
+            <SelectTrigger className="w-full sm:w-64 max-w-xs">
               <SelectValue placeholder="Sin lista específica" />
             </SelectTrigger>
             <SelectContent>
@@ -203,7 +203,7 @@ export default function ContactsPage() {
         <div className="flex items-center gap-3">
           <Label className="text-sm">Filtrar por lista</Label>
           <Select value={filterListId} onValueChange={(v) => setFilterListId(v ?? '')}>
-            <SelectTrigger className="w-full sm:w-64">
+            <SelectTrigger className="w-full sm:w-64 max-w-xs">
               <SelectValue placeholder="Todas las listas" />
             </SelectTrigger>
             <SelectContent>
