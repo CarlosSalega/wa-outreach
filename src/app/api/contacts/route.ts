@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const { searchParams } = req.nextUrl;
+  const contactListId = searchParams.get('contactListId');
+
+  const where = contactListId ? { contactListId } : {};
+
   const contacts = await prisma.contact.findMany({
     orderBy: { createdAt: 'desc' },
+    where,
     select: {
       id: true,
       phone: true,
       agencyName: true,
       status: true,
+      contactListId: true,
       createdAt: true,
     },
   });
@@ -17,9 +24,14 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const items = Array.isArray(body) ? body : [body];
 
-  const valid = items.filter(i => i.phone);
+  // Support new format { items: [...], contactListId } and old flat-array format
+  const contactListId = typeof body === 'object' && !Array.isArray(body) ? body.contactListId : undefined;
+  const rawItems = typeof body === 'object' && !Array.isArray(body) && Array.isArray(body.items)
+    ? body.items
+    : Array.isArray(body) ? body : [body];
+
+  const valid = rawItems.filter((i: Record<string, unknown>) => i.phone);
   if (!valid.length) {
     return NextResponse.json(
       { error: 'Se requiere al menos un contacto con teléfono' },
@@ -28,13 +40,17 @@ export async function POST(req: NextRequest) {
   }
 
   const result = await prisma.$transaction(
-    valid.map(item =>
+    valid.map((item: Record<string, unknown>) =>
       prisma.contact.upsert({
-        where: { phone: item.phone.toString().replace(/\D/g, '') },
-        update: { agencyName: item.agencyName || '' },
+        where: { phone: String(item.phone).replace(/\D/g, '') },
+        update: {
+          agencyName: String(item.agencyName || ''),
+          ...(contactListId ? { contactListId } : {}),
+        },
         create: {
-          phone: item.phone.toString().replace(/\D/g, ''),
-          agencyName: item.agencyName || '',
+          phone: String(item.phone).replace(/\D/g, ''),
+          agencyName: String(item.agencyName || ''),
+          ...(contactListId ? { contactListId } : {}),
         },
       })
     )

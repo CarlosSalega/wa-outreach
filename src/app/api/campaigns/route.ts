@@ -3,19 +3,28 @@ import { prisma } from '@/lib/prisma';
 import { interpolate } from '@/lib/whatsapp/interpolate';
 
 export async function GET() {
-  const campaign = await prisma.campaign.findFirst({
+  const campaigns = await prisma.campaign.findMany({
     orderBy: { createdAt: 'desc' },
     include: {
       template: true,
+      whatsappAccount: true,
+      contactList: true,
       _count: { select: { queue: true } },
     },
   });
-  return NextResponse.json(campaign);
+  return NextResponse.json(campaigns);
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { name, templateId, delayMinSec, delayMaxSec } = body;
+  const { name, templateId, delayMinSec, delayMaxSec, whatsappAccountId, contactListId, order } = body;
+
+  if (!name || !templateId) {
+    return NextResponse.json(
+      { error: 'name and templateId are required' },
+      { status: 400 }
+    );
+  }
 
   const campaign = await prisma.campaign.create({
     data: {
@@ -23,19 +32,28 @@ export async function POST(req: NextRequest) {
       templateId,
       delayMinSec: delayMinSec ?? 45,
       delayMaxSec: delayMaxSec ?? 120,
+      whatsappAccountId: whatsappAccountId ?? undefined,
+      order: order ?? 0,
     },
     include: { template: true },
   });
 
+  // If a contactListId is provided, link contacts from that list
+  // Otherwise, find unassigned contacts (backward compatible)
+  const contactWhere = contactListId
+    ? { contactListId, status: 'pending' as const }
+    : { campaignId: null, status: 'pending' as const };
+
   const contacts = await prisma.contact.findMany({
-    where: { campaignId: null, status: 'pending' },
+    where: contactWhere,
   });
 
   if (!contacts.length) {
-    return NextResponse.json(
-      { error: 'No hay contactos pendientes para encolar' },
-      { status: 400 }
-    );
+    return NextResponse.json({
+      campaign,
+      contactsEnqueued: 0,
+      messagesScheduled: 0,
+    });
   }
 
   const messages = JSON.parse(campaign.template.messages) as { order: number; body: string }[];
@@ -64,9 +82,17 @@ export async function POST(req: NextRequest) {
     const interDelay = Math.floor(Math.random() * (7 - 3 + 1) + 3) * 60 * 1000;
     scheduledAt = new Date(scheduledAt.getTime() + interDelay);
 
+    const contactUpdateData: Record<string, unknown> = {
+      campaignId: campaign.id,
+      status: 'active',
+    };
+    if (contactListId) {
+      contactUpdateData.contactListId = contactListId;
+    }
+
     await prisma.contact.update({
       where: { id: contact.id },
-      data: { campaignId: campaign.id, status: 'active' },
+      data: contactUpdateData,
     });
   }
 
