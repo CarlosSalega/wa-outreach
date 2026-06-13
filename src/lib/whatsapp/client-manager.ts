@@ -114,7 +114,7 @@ export class ClientManager {
 
   isReady(id: string): boolean {
     const session = this.sessions.get(id);
-    return session?.status === 'connected' ?? false;
+    return session?.status === 'connected';
   }
 
   getStatus(id: string): ConnectionStatus {

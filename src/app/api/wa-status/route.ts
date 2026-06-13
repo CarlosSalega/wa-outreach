@@ -4,19 +4,18 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
-  let accountId = searchParams.get('accountId');
 
-  // If no accountId provided, use the first account (backward compat)
+  // Resolve account: param first, fallback to first account (backward compat)
+  const accountId =
+    searchParams.get('accountId') ||
+    (await prisma.whatsAppAccount.findFirst())?.id;
+
   if (!accountId) {
-    const firstAccount = await prisma.whatsAppAccount.findFirst();
-    if (!firstAccount) {
-      return NextResponse.json({
-        status: 'disconnected',
-        qr: null,
-        message: 'No WhatsApp accounts configured',
-      });
-    }
-    accountId = firstAccount.id;
+    return NextResponse.json({
+      status: 'disconnected',
+      qr: null,
+      message: 'No WhatsApp accounts configured',
+    });
   }
 
   const status = clientManager.getStatus(accountId);
