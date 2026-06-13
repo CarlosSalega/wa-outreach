@@ -1,15 +1,17 @@
 import { prisma } from '../prisma';
 
-export async function getDailyLimit(): Promise<number> {
-  const config = await prisma.appConfig.findFirst();
+export async function getDailyLimit(accountId: string): Promise<number> {
+  const account = await prisma.whatsAppAccount.findUnique({
+    where: { id: accountId },
+  });
 
-  if (!config) {
-    console.warn('[warmup] No hay AppConfig, usando límite mínimo de 10');
+  if (!account) {
+    console.warn(`[warmup] Account ${accountId} not found, usando límite mínimo de 10`);
     return 10;
   }
 
   const now = new Date();
-  const start = new Date(config.waAccountStartDate);
+  const start = new Date(account.waAccountStartDate);
   const daysSinceStart = Math.floor(
     (now.getTime() - start.getTime()) / 86_400_000
   );
@@ -17,10 +19,10 @@ export async function getDailyLimit(): Promise<number> {
   if (daysSinceStart <= 3)  return 10;
   if (daysSinceStart <= 7)  return 20;
   if (daysSinceStart <= 14) return 35;
-  return config.dailyLimit;
+  return account.dailyLimit;
 }
 
-export async function getDailyCount(): Promise<number> {
+export async function getDailyCount(accountId: string): Promise<number> {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -28,16 +30,21 @@ export async function getDailyCount(): Promise<number> {
     where: {
       status: 'sent',
       sentAt: { gte: today },
+      messageQueue: {
+        campaign: {
+          whatsappAccountId: accountId,
+        },
+      },
     },
   });
 }
 
-export async function hasReachedDailyLimit(): Promise<boolean> {
+export async function hasReachedDailyLimit(accountId: string): Promise<boolean> {
   const [limit, count] = await Promise.all([
-    getDailyLimit(),
-    getDailyCount(),
+    getDailyLimit(accountId),
+    getDailyCount(accountId),
   ]);
 
-  console.log(`[warmup] Enviados hoy: ${count} / límite: ${limit}`);
+  console.log(`[warmup] Account ${accountId}: ${count} / ${limit}`);
   return count >= limit;
 }

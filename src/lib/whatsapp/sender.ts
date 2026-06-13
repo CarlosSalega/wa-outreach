@@ -1,5 +1,3 @@
-import { getClient, isReady } from './client';
-
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -8,7 +6,7 @@ function randomDelay(minSec: number, maxSec: number): number {
   return (Math.floor(Math.random() * (maxSec - minSec + 1)) + minSec) * 1000;
 }
 
-function formatPhone(phone: string): string {
+export function formatPhone(phone: string): string {
   const clean = phone.replace(/\D/g, '');
 
   if (phone.includes('@c.us')) return phone;
@@ -30,20 +28,17 @@ export type SendResult = {
   error?: string;
 };
 
+/**
+ * Send a sequence of WhatsApp messages to a phone number.
+ * Accepts a WhatsApp client as first parameter (multi-account support).
+ */
 export async function sendMessageSequence(
+  client: { sendMessage: (chatId: string, message: string) => Promise<unknown> },
   phone: string,
   messages: string[],
   delayMinSec: number,
   delayMaxSec: number,
 ): Promise<SendResult> {
-  if (!isReady()) {
-    return {
-      success: false,
-      messagesSent: 0,
-      error: 'Cliente WhatsApp no conectado',
-    };
-  }
-
   if (!messages.length) {
     return {
       success: false,
@@ -52,7 +47,6 @@ export async function sendMessageSequence(
     };
   }
 
-  const client = getClient();
   const chatId = formatPhone(phone);
   let messagesSent = 0;
 
@@ -74,12 +68,13 @@ export async function sendMessageSequence(
     console.log(`[sender] Secuencia completa para ${phone} (${messagesSent} mensajes)`);
     return { success: true, messagesSent };
 
-  } catch (err: any) {
-    console.error(`[sender] Error enviando a ${phone}:`, err.message);
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error(`[sender] Error enviando a ${phone}:`, errorMessage);
     return {
       success: false,
       messagesSent,
-      error: err.message,
+      error: errorMessage,
     };
   }
 }

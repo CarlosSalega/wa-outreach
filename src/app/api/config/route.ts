@@ -8,36 +8,27 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { waAccountStartDate, dailyLimit, sendWindowStart, sendWindowStartMin, sendWindowEnd, sendWindowEndMin } = body;
 
-  if (!waAccountStartDate) {
-    return NextResponse.json(
-      { error: 'waAccountStartDate es requerido' },
-      { status: 400 }
-    );
-  }
-
+  // Warmup/window fields are now per-account in WhatsAppAccount — ignore them here
   const existing = await prisma.appConfig.findFirst();
 
+  // Only pass through fields that aren't warmup/window related
+  // For now, there are no remaining global settings beyond warmup/window
+  // If no warmup/window fields are sent, this API becomes a no-op for AppConfig
+  // (kept for backward compatibility and future global settings)
   const config = existing
     ? await prisma.appConfig.update({
         where: { id: existing.id },
-        data: {
-          dailyLimit: dailyLimit ?? existing.dailyLimit,
-          sendWindowStart: sendWindowStart ?? existing.sendWindowStart,
-          sendWindowStartMin: sendWindowStartMin ?? existing.sendWindowStartMin,
-          sendWindowEnd: sendWindowEnd ?? existing.sendWindowEnd,
-          sendWindowEndMin: sendWindowEndMin ?? existing.sendWindowEndMin,
-        },
+        data: {}, // No global settings to update — warmup/window moved to WhatsAppAccount
       })
     : await prisma.appConfig.create({
         data: {
-          waAccountStartDate: new Date(waAccountStartDate),
-          dailyLimit: dailyLimit ?? 50,
-          sendWindowStart: sendWindowStart ?? 9,
-          sendWindowStartMin: sendWindowStartMin ?? 0,
-          sendWindowEnd: sendWindowEnd ?? 19,
-          sendWindowEndMin: sendWindowEndMin ?? 0,
+          waAccountStartDate: new Date(),
+          dailyLimit: 50,
+          sendWindowStart: 9,
+          sendWindowStartMin: 0,
+          sendWindowEnd: 19,
+          sendWindowEndMin: 0,
         },
       });
 

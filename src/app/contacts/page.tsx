@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import Papa from 'papaparse';
 
 type Contact = {
@@ -13,24 +16,40 @@ type Contact = {
   phone: string;
   agencyName: string;
   status: string;
+  contactListId: string | null;
   createdAt: string;
 };
 
+type ContactList = {
+  id: string;
+  name: string;
+};
+
 export default function ContactsPage() {
-  const [contacts, setContacts]   = useState<Contact[]>([]);
-  const [loading, setLoading]     = useState(true);
-  const [importing, setImporting] = useState(false);
-  const [feedback, setFeedback]   = useState<string | null>(null);
+  const [contacts, setContacts]       = useState<Contact[]>([]);
+  const [contactLists, setContactLists] = useState<ContactList[]>([]);
+  const [filterListId, setFilterListId] = useState('');
+  const [importListId, setImportListId] = useState('');
+  const [loading, setLoading]         = useState(true);
+  const [importing, setImporting]     = useState(false);
+  const [feedback, setFeedback]       = useState<string | null>(null);
 
   const fetchContacts = useCallback(async () => {
-    const res = await fetch('/api/contacts');
+    const params = filterListId ? `?contactListId=${filterListId}` : '';
+    const res = await fetch(`/api/contacts${params}`);
     const data = await res.json();
-    setContacts(data);
+    setContacts(Array.isArray(data) ? data : []);
+  }, [filterListId]);
+
+  const fetchLists = useCallback(async () => {
+    const res = await fetch('/api/contact-lists');
+    const data = await res.json();
+    setContactLists(Array.isArray(data) ? data : []);
   }, []);
 
   useEffect(() => {
-    fetchContacts().finally(() => setLoading(false));
-  }, [fetchContacts]);
+    Promise.all([fetchContacts(), fetchLists()]).finally(() => setLoading(false));
+  }, [fetchContacts, fetchLists]);
 
   async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -46,14 +65,14 @@ export default function ContactsPage() {
 
       if (ext === 'csv') {
         const text = await file.text();
-        const result = Papa.parse<any>(text, {
+        const result = Papa.parse<Record<string, string>>(text, {
           header: true,
           skipEmptyLines: true,
           delimiter: ',',
           transformHeader: (h: string) => h.trim().toLowerCase(),
         });
 
-        items = result.data.map((row: any) => ({
+        items = result.data.map((row) => ({
           phone: (row.phone ?? row.telefono ?? '').toString().replace(/\D/g, ''),
           agencyName: (row.agencyname ?? row.nombre ?? row.agency ?? '').toString().trim(),
         }));
@@ -62,7 +81,7 @@ export default function ContactsPage() {
         const text = await file.text();
         const parsed = JSON.parse(text);
         const arr = Array.isArray(parsed) ? parsed : parsed.contacts ?? [];
-        items = arr.map((row: any) => ({
+        items = arr.map((row: Record<string, string>) => ({
           phone: (row.phone ?? row.telefono ?? '').toString().replace(/\D/g, ''),
           agencyName: (row.agencyName ?? row.nombre ?? row.agency ?? '').toString().trim(),
         }));
@@ -82,10 +101,13 @@ export default function ContactsPage() {
         return;
       }
 
+      const body: Record<string, unknown> = { items: valid };
+      if (importListId) body.contactListId = importListId;
+
       const res = await fetch('/api/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(valid),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
@@ -119,7 +141,7 @@ export default function ContactsPage() {
       <div>
         <h1 className="text-xl font-medium">Contactos</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          {contacts.length} contactos cargados
+          {contacts.length} contactos{filterListId ? ' en esta lista' : ' cargados'}
         </p>
       </div>
 
@@ -131,6 +153,21 @@ export default function ContactsPage() {
             <code className="text-xs bg-muted px-1 py-0.5 rounded">phone</code> obligatoria.{' '}
             <code className="text-xs bg-muted px-1 py-0.5 rounded">agencyName</code> opcional.
           </p>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label>Lista de contactos (opcional)</Label>
+          <Select value={importListId} onValueChange={(v) => setImportListId(v ?? '')}>
+            <SelectTrigger className="w-full sm:w-64">
+              <SelectValue placeholder="Sin lista específica" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Sin lista específica</SelectItem>
+              {contactLists.map(list => (
+                <SelectItem key={list.id} value={list.id}>{list.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="flex items-center gap-3">
@@ -162,11 +199,28 @@ export default function ContactsPage() {
 
       <Separator />
 
-      {loading ? (
-        <p className="text-sm text-muted-foreground">Cargando...</p>
-      ) : (
-        <ContactsTable contacts={contacts} onDelete={handleDelete} />
-      )}
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <Label className="text-sm">Filtrar por lista</Label>
+          <Select value={filterListId} onValueChange={(v) => setFilterListId(v ?? '')}>
+            <SelectTrigger className="w-full sm:w-64">
+              <SelectValue placeholder="Todas las listas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Todas las listas</SelectItem>
+              {contactLists.map(list => (
+                <SelectItem key={list.id} value={list.id}>{list.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {loading ? (
+          <p className="text-sm text-muted-foreground">Cargando...</p>
+        ) : (
+          <ContactsTable contacts={contacts} onDelete={handleDelete} />
+        )}
+      </div>
     </div>
   );
 }
