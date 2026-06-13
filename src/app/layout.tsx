@@ -38,13 +38,15 @@ export default function RootLayout({
       >
         <div className="min-h-screen bg-background">
           <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
-            <div className="mx-auto max-w-5xl px-4 h-14 flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <span className="font-semibold text-sm text-whatsapp flex gap-1">
+            <div className="mx-auto max-w-5xl px-4 h-14 flex items-center justify-between gap-4 overflow-x-auto">
+              <div className="flex items-center gap-6 shrink-0">
+                <span className="font-semibold text-sm text-whatsapp flex gap-1 items-center">
                   <WhatsappIcon />
                   <span>WA</span>
-                  <hr />
-                  Outreach
+                  <span className="hidden md:inline-flex items-center gap-1">
+                    <hr />
+                    Outreach
+                  </span>
                 </span>
                 <MainNav />
               </div>
