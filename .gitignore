@@ -11,4 +11,5 @@ wa-qr.png
 /prisma/migrations/
 .wwebjs_cache/
 clients.csv
+*.tsbuildinfo
 
